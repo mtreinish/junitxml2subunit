@@ -1,0 +1,9 @@
+[package]
+name = "junitxml2subunit"
+version = "0.1.0"
+authors = ["Matthew Treinish <mtreinish@kortar.org>"]
+
+[dependencies]
+subunit-rust = "0.1.1"
+minidom = "0.9.1"
+chrono = "0.4"
