@@ -173,7 +173,7 @@ fn main() {
                         ).unwrap();
                     }
                     test_id == "".to_string();
-                } else if e.name() == "failed".as_bytes() {
+                } else if e.name() == "failure".as_bytes() {
                     let mut message = false;
                     let status = "fail".to_string();
                     for attribute in e.attributes() {
