@@ -16,87 +16,193 @@
 // along with junitxml2subunit.  If not, see <http://www.gnu.org/licenses/>.
 
 extern crate chrono;
-extern crate minidom;
+extern crate num_traits;
+extern crate quick_xml;
 extern crate subunit_rust;
 
 use std::env;
-use std::fs::File;
-use std::io::{self, Read};
+use std::error::Error;
+use std::path::Path;
+use std::io::{self, Write};
+use std::str;
 
 use chrono::prelude::*;
 use chrono::Duration;
-use minidom::Element;
+use num_traits::pow;
+use quick_xml::Reader;
+use quick_xml::events::Event as XMLEvent;
 use subunit_rust::Event;
+
+type GenError = Box<Error>;
+type GenResult<T> = Result<T, GenError>;
+
+fn write_first_packet<T: Write>(test_id: &String,
+                                timestamp: DateTime<Utc>,
+                                output: T) -> GenResult<T> {
+    let mut event_start = Event {
+        status: Some("inprogress".to_string()),
+        test_id: Some(test_id.to_string()),
+        timestamp: Some(timestamp),
+        tags: None,
+        file_content: None,
+        file_name: None,
+        mime_type: None,
+        route_code: None
+    };
+    let result =  event_start.write(output)?;
+    return Result::Ok(result);
+}
+
+
+fn write_second_packet<T: Write>(status: &String, test_id: &String,
+                                 timestamp: DateTime<Utc>,
+                                 file_content: Option<Vec<u8>>,
+                                 file_name: Option<String>,
+                                 mime_type: Option<String>,
+                                 output: T) -> GenResult<T> {
+    let mut event_stop = Event {
+        status: Some(status.to_string()),
+        test_id: Some(test_id.to_string()),
+        timestamp: Some(timestamp),
+        tags: None,
+        file_content: file_content,
+        file_name: file_name,
+        mime_type: mime_type,
+        route_code: None,
+    };
+    let result = event_stop.write(output)?;
+    return Result::Ok(result);
+}
+
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let mut buffer = String::new();
-
+    let mut reader;
     if args.len() >= 2 {
-        let path = &args[1];
-        let mut f = File::open(path).unwrap();
-        let mut buffer = String::new();
-        f.read_to_string(&mut buffer);
+        let path = Path::new(&args[1]);
+        reader = Reader::from_file(path).unwrap();
     } else {
-        let stdin = io::stdin();
-        let mut handle = stdin.lock();
-        handle.read_to_string(&mut buffer);
+        panic!("You need to pass a xml file in as the first argument");
     }
-    let root: Element = buffer.parse().unwrap();
 
     let mut stdout = io::stdout();
     let mut start_time: DateTime<Utc> = Utc::now();
-    for child in root.children() {
-        if child.is("testcase", "testrcase") {
-            let test_name = child.attr("name");
-            let test_class = child.attr("classname");
-            let test_status = "success";
-            let time = child.attr("time").unwrap().parse::<i64>().unwrap();
-            let dur = Duration::seconds(time);
-            let mut test_id = "".to_string();
-            if test_class.is_some() {
-                if test_name.is_some() {
-                    test_id = test_class.unwrap().to_owned() + test_name.unwrap();
-                } else {
-                    test_id = test_class.unwrap().to_string();
+    let mut buf = Vec::new();
+    let mut test_id = "".to_string();
+    let mut stop_time: DateTime<Utc> = Utc::now();
+    loop {
+        match reader.read_event(&mut buf) {
+            Ok(XMLEvent::Start(ref e)) => {
+                if e.name() == "testcase".as_bytes() {
+                    if test_id != "".to_string() {
+                        let status = "success".to_string();
+                        stdout = write_second_packet(&status, &test_id,
+                                                     stop_time, None, None,
+                                                     None, stdout).unwrap();
+                    }
+                    let mut class_name = None;
+                    let mut time = None;
+                    let mut test_name = None;
+                    for attribute in e.attributes() {
+                        let attr = attribute.unwrap();
+                        if attr.key == "name".as_bytes() {
+                            test_name = Some(attr.value);
+                        } else if attr.key == "classname".as_bytes() {
+                            class_name = Some(attr.value);
+                        } else if attr.key == "time".as_bytes() {
+                            time = Some(attr.value);
+                        }
+                    }
+                    if ! time.is_some() {
+                        panic!("Invalid XML no time found");
+                    } else {
+                        let mut time_cow = time.unwrap();
+                        let time_str =  str::from_utf8(time_cow.to_mut()).unwrap();
+                        let time_64 = time_str.parse::<f64>().unwrap();
+                        let time_nano = time_64 * pow(10f64, 9);
+                        let dur = Duration::seconds(time_nano as i64);
+                        stop_time = start_time + dur;
+                    }
+                    if ! test_name.is_some() && ! class_name.is_some() {
+                        panic!("Invalid XML no test_id found");
+                    }
+                    if class_name.is_some() {
+                        if test_name.is_some() {
+                            test_id = str::from_utf8(class_name.unwrap().to_mut()).unwrap().to_owned() + str::from_utf8(test_name.unwrap().to_mut()).unwrap();
+                        } else {
+                            test_id = str::from_utf8(test_name.unwrap().to_mut()).unwrap().to_string();
+                        }
+                    }
+                    stdout = write_first_packet(&test_id, start_time,
+                                                stdout).unwrap();
+                    start_time = stop_time;
+                } else if e.name() == "skipped".as_bytes() {
+                    let mut message = false;
+                    let status = "skip".to_string();
+                    for attribute in e.attributes() {
+                        let attr = attribute.unwrap();
+                        if attr.key == "message".as_bytes() {
+                            let file_content = attr.value;
+                            let fname = "reason".to_string();
+                            let mime = "text/plain".to_string();
+                            stdout = write_second_packet(&status, &test_id,
+                                                         stop_time,
+                                                         Some(file_content.to_vec()),
+                                                         Some(fname),
+                                                         Some(mime),
+                                                         stdout).unwrap();
+                            message = true;
+                            break;
+                        }
+                    }
+                    if ! message {
+                        stdout = write_second_packet(&status, &test_id,
+                                                     stop_time,
+                                                     None, None, None,
+                                                     stdout).unwrap();
+                    }
+                    test_id == "".to_string();
+                } else if e.name() == "failed".as_bytes() {
+                    let mut message = false;
+                    let status = "fail".to_string();
+                    for attribute in e.attributes() {
+                        let attr = attribute.unwrap();
+                        if attr.key == "message".as_bytes() {
+                            let file_content = attr.value;
+                            let fname = "traceback".to_string();
+                            let mime = "text/plain".to_string();
+
+                            stdout = write_second_packet(&status, &test_id,
+                                                         stop_time,
+                                                         Some(file_content.to_vec()),
+                                                         Some(fname),
+                                                         Some(mime),
+                                                         stdout).unwrap();
+                            message = true;
+                            break;
+                        }
+                    }
+                    if ! message {
+                        stdout = write_second_packet(&status, &test_id,
+                                                     stop_time,
+                                                     None, None, None,
+                                                     stdout).unwrap();
+                    }
+                    test_id = "".to_string();
                 }
-            }
-            let mut event_start = Event {
-                status: Some("inprogress".to_string()),
-                test_id: Some(test_id.clone()),
-                timestamp: Some(start_time),
-                tags: None,
-                file_content: None,
-                file_name: None,
-                mime_type: None,
-                route_code: None
-            };
-            stdout = match event_start.write(stdout) {
-                Ok(stdout) => stdout,
-                Err(err) => panic!("{}", err),
-            };
-
-            let mime_type = None;
-            let file_content = None;
-            let file_name = None;
-
-            let mut event_stop = Event {
-                status: Some(test_status.to_string()),
-                test_id: Some(test_id),
-                timestamp: Some(start_time + dur),
-                tags: None,
-                file_content: file_content,
-                file_name: file_name,
-                mime_type: mime_type,
-                route_code: None,
-            };
-
-            stdout = match event_stop.write(stdout) {
-                Ok(stdout) => stdout,
-                Err(err) => panic!("{}", err),
-            };
-
-            start_time = start_time + dur;
+                let mut test_id = "".to_string();
+            },
+            Ok(XMLEvent::Eof) => {
+                let status = "success".to_string();
+                write_second_packet(&status, &test_id,
+                                    stop_time, None, None,
+                                    None, stdout).unwrap();
+                break;
+            },
+            Err(e) => panic!("Error at position {}: {:?}",
+                             reader.buffer_position(), e),
+            _ => continue,
         }
+        buf.clear()
     }
 }

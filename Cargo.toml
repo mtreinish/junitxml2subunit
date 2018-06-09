@@ -5,5 +5,6 @@ authors = ["Matthew Treinish <mtreinish@kortar.org>"]
 
 [dependencies]
 subunit-rust = "0.1.1"
-minidom = "0.9.1"
+quick-xml = "0.12.1"
 chrono = "0.4"
+num-traits = "0.2"
