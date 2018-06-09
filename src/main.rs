@@ -125,7 +125,7 @@ fn main() {
                         let time_str = str::from_utf8(time_cow.to_mut()).unwrap();
                         let time_64 = time_str.parse::<f64>().unwrap();
                         let time_nano = time_64 * pow(10f64, 9);
-                        let dur = Duration::seconds(time_nano as i64);
+                        let dur = Duration::nanoseconds(time_nano as i64);
                         stop_time = start_time + dur;
                     }
                     if !test_name.is_some() && !class_name.is_some() {
