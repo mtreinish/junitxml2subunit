@@ -24,6 +24,7 @@ use std::env;
 use std::error::Error;
 use std::io::{self, Write};
 use std::path::Path;
+use std::process;
 use std::str;
 
 use chrono::prelude::*;
@@ -85,7 +86,8 @@ fn main() {
         let path = Path::new(&args[1]);
         reader = Reader::from_file(path).unwrap();
     } else {
-        panic!("You need to pass a xml file in as the first argument");
+        eprintln!("You need to pass a xml file in as the first argument");
+        process::exit(1);
     }
 
     let mut stdout = io::stdout();
