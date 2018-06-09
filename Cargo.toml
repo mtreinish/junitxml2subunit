@@ -10,7 +10,7 @@ keywords = ["subunit", "junitxml"]
 categories = ["development-tools::testing"]
 
 [dependencies]
-subunit-rust = "0.1.1"
+subunit-rust = "0.1.2"
 quick-xml = "0.12.1"
 chrono = "0.4"
 num-traits = "0.2"
