@@ -136,7 +136,8 @@ fn main() {
                         }
                     }
                     if !time.is_some() {
-                        panic!("Invalid XML no time found");
+                        eprintln!("Invalid XML: There is no time attribute on a testcase");
+                        process::exit(2);
                     } else {
                         let mut time_cow = time.unwrap();
                         let time_str = str::from_utf8(time_cow.to_mut()).unwrap();
@@ -146,7 +147,8 @@ fn main() {
                         stop_time = start_time + dur;
                     }
                     if !test_name.is_some() && !class_name.is_some() {
-                        panic!("Invalid XML no test_id found");
+                        eprintln!("Invalid XML: There is no testname or classname attribute on a testcase");
+                        process::exit(3);
                     }
                     if class_name.is_some() {
                         if test_name.is_some() {
