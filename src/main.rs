@@ -85,6 +85,7 @@ fn main() {
     if args.len() >= 2 {
         let path = Path::new(&args[1]);
         reader = Reader::from_file(path).unwrap();
+        reader.trim_text(true);
     } else {
         eprintln!("You need to pass a xml file in as the first argument");
         process::exit(1);
@@ -94,6 +95,7 @@ fn main() {
     let mut start_time: DateTime<Utc> = Utc::now();
     let mut buf = Vec::new();
     let mut test_id = "".to_string();
+    let mut success_attachment: Option<String> = None;
     let mut stop_time: DateTime<Utc> = Utc::now();
     loop {
         match reader.read_event(&mut buf) {
@@ -101,9 +103,24 @@ fn main() {
                 if e.name() == "testcase".as_bytes() {
                     if test_id != "".to_string() {
                         let status = "success".to_string();
-                        stdout = write_second_packet(
-                            &status, &test_id, stop_time, None, None, None, stdout,
-                        ).unwrap();
+                        if success_attachment.is_some() {
+                            let fname = "stdout".to_string();
+                            let mime = "text/plain".to_string();
+                            stdout = write_second_packet(
+                                &status,
+                                &test_id,
+                                stop_time,
+                                Some(success_attachment.unwrap().into_bytes()),
+                                Some(fname),
+                                Some(mime),
+                                stdout,
+                            ).unwrap();
+                        } else {
+                            stdout = write_second_packet(
+                                &status, &test_id, stop_time, None, None, None, stdout,
+                            ).unwrap();
+                        }
+                        success_attachment = None;
                     }
                     let mut class_name = None;
                     let mut time = None;
@@ -212,7 +229,15 @@ fn main() {
                 break;
             }
             Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
-            _ => continue,
+            Ok(XMLEvent::Text(e)) => {
+                if test_id != "".to_string() {
+                    let attach = e.unescape_and_decode(&reader).unwrap();
+                    if !attach.is_empty() {
+                        success_attachment = Some(attach);
+                    }
+                }
+            }
+            _ => (),
         }
         buf.clear()
     }
