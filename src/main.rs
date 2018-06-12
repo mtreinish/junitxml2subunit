@@ -22,6 +22,7 @@ extern crate quick_xml;
 extern crate subunit_rust;
 
 use std::error::Error;
+use std::fs::File;
 use std::io::{self, Write};
 use std::path::Path;
 use std::process;
@@ -90,6 +91,13 @@ fn main() {
                 .required(true)
                 .index(1),
         )
+        .arg(
+            Arg::with_name("output")
+                .long("output")
+                .short("o")
+                .help("Optional output path to write subunit to. If not specified it will be written to STDOUT")
+                .value_name("FILE")
+                .takes_value(true))
         .get_matches();
 
     let path_str = matches.value_of("PATH").unwrap();
@@ -106,8 +114,20 @@ fn main() {
         }
     };
     reader.trim_text(true);
-
-    let mut stdout = io::stdout();
+    let mut stdout: Box<Write>;
+    if matches.is_present("output") {
+        let out_path = matches.value_of("output").unwrap();
+        let out_file = match File::create(out_path) {
+            Ok(out_file) => out_file,
+            Err(err) => {
+                eprintln!("{} while creating output file {}", err, out_path);
+                process::exit(4);
+            }
+        };
+        stdout = Box::new(out_file);
+    } else {
+        stdout = Box::new(io::stdout());
+    }
     let mut start_time: DateTime<Utc> = Utc::now();
     let mut buf = Vec::new();
     let mut test_id = "".to_string();
