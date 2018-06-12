@@ -16,11 +16,11 @@
 // along with junitxml2subunit.  If not, see <http://www.gnu.org/licenses/>.
 
 extern crate chrono;
+extern crate clap;
 extern crate num_traits;
 extern crate quick_xml;
 extern crate subunit_rust;
 
-use std::env;
 use std::error::Error;
 use std::io::{self, Write};
 use std::path::Path;
@@ -29,6 +29,7 @@ use std::str;
 
 use chrono::prelude::*;
 use chrono::Duration;
+use clap::{App, Arg};
 use num_traits::pow;
 use quick_xml::events::Event as XMLEvent;
 use quick_xml::Reader;
@@ -80,16 +81,31 @@ fn write_second_packet<T: Write>(
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    let mut reader;
-    if args.len() >= 2 {
-        let path = Path::new(&args[1]);
-        reader = Reader::from_file(path).unwrap();
-        reader.trim_text(true);
-    } else {
-        eprintln!("You need to pass a xml file in as the first argument");
+    let matches = App::new("junitxml2subunit")
+        .version("0.2.0")
+        .about("Convert JUnit XML to Subunit v2")
+        .arg(
+            Arg::with_name("PATH")
+                .help("The path to the XML input file")
+                .required(true)
+                .index(1),
+        )
+        .get_matches();
+
+    let path_str = matches.value_of("PATH").unwrap();
+    let path = Path::new(path_str);
+    if !path.exists() {
+        eprintln!("Path to XML file: {} does not exist", path_str);
         process::exit(1);
     }
+    let mut reader = match Reader::from_file(path) {
+        Ok(reader) => reader,
+        Err(err) => {
+            eprintln!("{} while reading XML file {}", err, path_str);
+            process::exit(1);
+        }
+    };
+    reader.trim_text(true);
 
     let mut stdout = io::stdout();
     let mut start_time: DateTime<Utc> = Utc::now();
