@@ -1,6 +1,6 @@
 [package]
 name = "junitxml2subunit"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Matthew Treinish <mtreinish@kortar.org>"]
 description = "A tool to convert junitxml files to subunit v2"
 license = "GPL-3.0"

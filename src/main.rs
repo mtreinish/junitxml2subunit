@@ -83,7 +83,7 @@ fn write_second_packet<T: Write>(
 
 fn main() {
     let matches = App::new("junitxml2subunit")
-        .version("0.2.0")
+        .version("1.0.0")
         .about("Convert JUnit XML to Subunit v2")
         .arg(
             Arg::with_name("PATH")
