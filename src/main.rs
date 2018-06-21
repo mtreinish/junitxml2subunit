@@ -161,10 +161,13 @@ fn main() {
                     let mut class_name = None;
                     let mut time = None;
                     let mut test_name = None;
+                    let mut id = None;
                     for attribute in e.attributes() {
                         let attr = attribute.unwrap();
                         if attr.key == "name".as_bytes() {
                             test_name = Some(attr.value);
+                        } else if attr.key == "id".as_bytes() {
+                            id = Some(attr.value);
                         } else if attr.key == "classname".as_bytes() {
                             class_name = Some(attr.value);
                         } else if attr.key == "time".as_bytes() {
@@ -192,11 +195,22 @@ fn main() {
                                 .unwrap()
                                 .to_owned()
                                 + str::from_utf8(test_name.unwrap().to_mut()).unwrap();
+                        } else if id.is_some() {
+                            test_id = str::from_utf8(class_name.unwrap().to_mut())
+                                .unwrap()
+                                .to_owned()
+                                + str::from_utf8(id.unwrap().to_mut()).unwrap();
                         } else {
-                            test_id = str::from_utf8(test_name.unwrap().to_mut())
+                            test_id = str::from_utf8(class_name.unwrap().to_mut())
                                 .unwrap()
                                 .to_string();
                         }
+                    } else if id.is_some() {
+                        test_id = str::from_utf8(id.unwrap().to_mut()).unwrap().to_string();
+                    } else if test_name.is_some() {
+                        test_id = str::from_utf8(test_name.unwrap().to_mut())
+                            .unwrap()
+                            .to_string();
                     }
                     stdout = write_first_packet(&test_id, start_time, stdout).unwrap();
                     start_time = stop_time;
