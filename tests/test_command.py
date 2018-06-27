@@ -171,3 +171,61 @@ class TestJunitXML2Subunit(testtools.TestCase):
         self.assertIn(example_id, test_ids)
         self.assertEqual(skip_count, 2)
         self.assertEqual(success_count, 116)
+
+    def test_no_time_xml_in_stdout(self):
+        no_time_xml_path = os.path.join(self.examples_dir, 'no_time.xml')
+        junitxml_proc = subprocess.Popen([self.command, no_time_xml_path],
+                                         cwd=self.repo_root,
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE)
+        _, stderr = junitxml_proc.communicate()
+        self.assertEqual(2, junitxml_proc.returncode)
+        self.assertEqual(
+            "Invalid XML: There is no time attribute on a testcase",
+            stderr.strip())
+
+    def test_no_time_xml_in_file_out(self):
+        no_time_xml_path = os.path.join(self.examples_dir, 'no_time.xml')
+        out_file, out_path = tempfile.mkstemp()
+        os.close(out_file)
+        self.addCleanup(os.remove, out_path)
+        junitxml_proc = subprocess.Popen([self.command, '-o', out_path,
+                                          no_time_xml_path],
+                                         cwd=self.repo_root,
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE)
+        _, stderr = junitxml_proc.communicate()
+        self.assertEqual(2, junitxml_proc.returncode)
+        self.assertEqual(
+            "Invalid XML: There is no time attribute on a testcase",
+            stderr.strip())
+
+    def test_no_id_xml_in_stdout(self):
+        no_id_xml_path = os.path.join(self.examples_dir, 'no_id.xml')
+        junitxml_proc = subprocess.Popen([self.command, no_id_xml_path],
+                                         cwd=self.repo_root,
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE)
+        _, stderr = junitxml_proc.communicate()
+        self.assertEqual(3, junitxml_proc.returncode)
+        self.assertEqual(
+            "Invalid XML: There is no testname or classname attribute on a "
+            "testcase",
+            stderr.strip())
+
+    def test_no_id_xml_in_file_out(self):
+        no_id_xml_path = os.path.join(self.examples_dir, 'no_id.xml')
+        out_file, out_path = tempfile.mkstemp()
+        os.close(out_file)
+        self.addCleanup(os.remove, out_path)
+        junitxml_proc = subprocess.Popen([self.command, '-o', out_path,
+                                          no_id_xml_path],
+                                         cwd=self.repo_root,
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE)
+        _, stderr = junitxml_proc.communicate()
+        self.assertEqual(3, junitxml_proc.returncode)
+        self.assertEqual(
+            "Invalid XML: There is no testname or classname attribute on a "
+            "testcase",
+            stderr.strip())
