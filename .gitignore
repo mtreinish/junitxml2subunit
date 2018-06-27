@@ -1,3 +1,9 @@
 
 /target
 **/*.rs.bk
+*~
+.*.swp
+.tox/*
+*egg*
+__pycache__
+*.pyc
