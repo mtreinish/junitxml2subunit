@@ -267,12 +267,12 @@ fn main() {
                         if test_name.is_some() {
                             test_id = str::from_utf8(class_name.unwrap().to_mut())
                                 .unwrap()
-                                .to_owned()
+                                .to_owned() + "."
                                 + str::from_utf8(test_name.unwrap().to_mut()).unwrap();
                         } else if id.is_some() {
                             test_id = str::from_utf8(class_name.unwrap().to_mut())
                                 .unwrap()
-                                .to_owned()
+                                .to_owned() + "."
                                 + str::from_utf8(id.unwrap().to_mut()).unwrap();
                         } else {
                             test_id = str::from_utf8(class_name.unwrap().to_mut())
