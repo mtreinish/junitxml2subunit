@@ -1,5 +1,16 @@
 language: rust
 rust:
   - stable
+addons:
+  language:
+      python
 matrix:
   fast_finish: true
+  include:
+    - python: 3.6
+
+before_install:
+  - ./tests/travis-before-install.sh
+
+script:
+  - ./tests/travis-test.sh
