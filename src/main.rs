@@ -81,6 +81,59 @@ fn write_second_packet<T: Write>(
     return Result::Ok(result);
 }
 
+fn _process_skip<T: Write>(
+    test_id: &String,
+    timestamp: DateTime<Utc>,
+    file_content: Option<Vec<u8>>,
+    output: T,
+) -> GenResult<T> {
+    let result;
+    let status = "skip".to_string();
+    if file_content.is_some() {
+        let fname = "reason".to_string();
+        let mime = "text/plain".to_string();
+        result = write_second_packet(
+            &status,
+            &test_id,
+            timestamp,
+            file_content,
+            Some(fname),
+            Some(mime),
+            output,
+        ).unwrap();
+    } else {
+        result =
+            write_second_packet(&status, &test_id, timestamp, None, None, None, output).unwrap();
+    }
+    return Result::Ok(result);
+}
+
+fn _process_failure<T: Write>(
+    test_id: &String,
+    timestamp: DateTime<Utc>,
+    file_content: Option<Vec<u8>>,
+    output: T,
+) -> GenResult<T> {
+    let result;
+    let status = "fail".to_string();
+    if file_content.is_some() {
+        let fname = "traceback".to_string();
+        let mime = "text/plain".to_string();
+        result = write_second_packet(
+            &status,
+            &test_id,
+            timestamp,
+            file_content,
+            Some(fname),
+            Some(mime),
+            output,
+        ).unwrap();
+    } else {
+        result =
+            write_second_packet(&status, &test_id, timestamp, None, None, None, output).unwrap();
+    }
+    return Result::Ok(result);
+}
 fn main() {
     let matches = App::new("junitxml2subunit")
         .version("1.0.0")
@@ -131,32 +184,53 @@ fn main() {
     let mut start_time: DateTime<Utc> = Utc::now();
     let mut buf = Vec::new();
     let mut test_id = "".to_string();
-    let mut success_attachment: Option<String> = None;
+    let mut status = "".to_string();
+    let mut attachment: Option<String> = None;
     let mut stop_time: DateTime<Utc> = Utc::now();
     loop {
         match reader.read_event(&mut buf) {
             Ok(XMLEvent::Start(ref e)) => {
                 if e.name() == "testcase".as_bytes() {
                     if test_id != "".to_string() {
-                        let status = "success".to_string();
-                        if success_attachment.is_some() {
-                            let fname = "stdout".to_string();
-                            let mime = "text/plain".to_string();
-                            stdout = write_second_packet(
-                                &status,
-                                &test_id,
-                                stop_time,
-                                Some(success_attachment.unwrap().into_bytes()),
-                                Some(fname),
-                                Some(mime),
-                                stdout,
-                            ).unwrap();
+                        if attachment.is_some() {
+                            if status == "fail".to_string() {
+                                stdout = _process_failure(
+                                    &test_id,
+                                    stop_time,
+                                    Some(attachment.unwrap().into_bytes()),
+                                    stdout,
+                                ).unwrap();
+                            } else if status == "skip".to_string() {
+                                stdout = _process_skip(
+                                    &test_id,
+                                    stop_time,
+                                    Some(attachment.unwrap().into_bytes()),
+                                    stdout,
+                                ).unwrap();
+                            } else {
+                                let fname = "stdout".to_string();
+                                let mime = "text/plain".to_string();
+                                status = "success".to_string();
+                                stdout = write_second_packet(
+                                    &status,
+                                    &test_id,
+                                    stop_time,
+                                    Some(attachment.unwrap().into_bytes()),
+                                    Some(fname),
+                                    Some(mime),
+                                    stdout,
+                                ).unwrap();
+                            }
                         } else {
+                            if status == "".to_string() {
+                                status = "success".to_string();
+                            }
                             stdout = write_second_packet(
                                 &status, &test_id, stop_time, None, None, None, stdout,
                             ).unwrap();
                         }
-                        success_attachment = None;
+                        attachment = None;
+                        status = "".to_string();
                     }
                     let mut class_name = None;
                     let mut time = None;
@@ -215,64 +289,40 @@ fn main() {
                     stdout = write_first_packet(&test_id, start_time, stdout).unwrap();
                     start_time = stop_time;
                 } else if e.name() == "skipped".as_bytes() {
-                    let mut message = false;
-                    let status = "skip".to_string();
+                    status = "skip".to_string();
                     for attribute in e.attributes() {
                         let attr = attribute.unwrap();
                         if attr.key == "message".as_bytes() {
                             let file_content = attr.value;
-                            let fname = "reason".to_string();
-                            let mime = "text/plain".to_string();
-                            stdout = write_second_packet(
-                                &status,
+                            stdout = _process_skip(
                                 &test_id,
                                 stop_time,
                                 Some(file_content.to_vec()),
-                                Some(fname),
-                                Some(mime),
                                 stdout,
                             ).unwrap();
-                            message = true;
+                            status = "".to_string();
+                            test_id = "".to_string();
                             break;
                         }
                     }
-                    if !message {
-                        stdout = write_second_packet(
-                            &status, &test_id, stop_time, None, None, None, stdout,
-                        ).unwrap();
-                    }
-                    test_id == "".to_string();
-                } else if e.name() == "failure".as_bytes() {
-                    let mut message = false;
-                    let status = "fail".to_string();
+                } else if e.name() == "failure".as_bytes() || e.name() == "error".as_bytes() {
+                    status = "fail".to_string();
                     for attribute in e.attributes() {
                         let attr = attribute.unwrap();
                         if attr.key == "message".as_bytes() {
                             let file_content = attr.value;
-                            let fname = "traceback".to_string();
-                            let mime = "text/plain".to_string();
-
-                            stdout = write_second_packet(
-                                &status,
+                            stdout = _process_failure(
                                 &test_id,
                                 stop_time,
                                 Some(file_content.to_vec()),
-                                Some(fname),
-                                Some(mime),
                                 stdout,
                             ).unwrap();
-                            message = true;
+                            status = "".to_string();
+                            test_id = "".to_string();
                             break;
                         }
                     }
-                    if !message {
-                        stdout = write_second_packet(
-                            &status, &test_id, stop_time, None, None, None, stdout,
-                        ).unwrap();
-                    }
-                    test_id = "".to_string();
                 }
-                let mut test_id = "".to_string();
             }
             Ok(XMLEvent::Eof) => {
                 let status = "success".to_string();
@@ -282,11 +332,9 @@ fn main() {
             }
             Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
             Ok(XMLEvent::Text(e)) => {
-                if test_id != "".to_string() {
-                    let attach = e.unescape_and_decode(&reader).unwrap();
-                    if !attach.is_empty() {
-                        success_attachment = Some(attach);
-                    }
+                let attach = e.unescape_and_decode(&reader).unwrap();
+                if !attach.is_empty() {
+                    attachment = Some(attach);
                 }
             }
             _ => (),
