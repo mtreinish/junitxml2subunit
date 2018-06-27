@@ -325,9 +325,11 @@ fn main() {
                 }
             }
             Ok(XMLEvent::Eof) => {
-                let status = "success".to_string();
-                write_second_packet(&status, &test_id, stop_time, None, None, None, stdout)
-                    .unwrap();
+                if test_id != "".to_string() {
+                    let status = "success".to_string();
+                    write_second_packet(&status, &test_id, stop_time, None, None, None, stdout)
+                        .unwrap();
+                }
                 break;
             }
             Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
