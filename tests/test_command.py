@@ -229,3 +229,16 @@ class TestJunitXML2Subunit(testtools.TestCase):
             "Invalid XML: There is no testname or classname attribute on a "
             "testcase",
             stderr.strip())
+
+    def test_missing_file(self):
+        out_file, out_path = tempfile.mkstemp()
+        os.close(out_file)
+        os.remove(out_path)
+        junitxml_proc = subprocess.Popen([self.command, out_path],
+                                         cwd=self.repo_root,
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE)
+        _, stderr = junitxml_proc.communicate()
+        self.assertEqual(1, junitxml_proc.returncode)
+        self.assertEqual(
+            "Path to XML file: %s does not exist" % out_path, stderr.strip())
