@@ -13,4 +13,6 @@ before_install:
   - ./tests/travis-before-install.sh
 
 script:
+  - cargo fmt --all -- --check
+  - cargo clippy
   - ./tests/travis-test.sh
