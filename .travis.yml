@@ -10,7 +10,11 @@ matrix:
     - python: 3.6
 
 before_install:
+  - rustup component add rustfmt
+  - rustup component add clippy
   - ./tests/travis-before-install.sh
 
 script:
+  - cargo fmt --all -- --check
+  - cargo clippy
   - ./tests/travis-test.sh

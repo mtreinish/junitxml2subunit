@@ -15,6 +15,10 @@
 // You should have received a copy of the GNU General Public License
 // along with junitxml2subunit.  If not, see <http://www.gnu.org/licenses/>.
 
+#![deny(warnings)]
+#![allow(clippy::cargo)]
+#![allow(clippy::cyclomatic_complexity)]
+
 extern crate chrono;
 extern crate clap;
 extern crate num_traits;
@@ -40,7 +44,7 @@ type GenError = Box<Error>;
 type GenResult<T> = Result<T, GenError>;
 
 fn write_first_packet<T: Write>(
-    test_id: &String,
+    test_id: &str,
     timestamp: DateTime<Utc>,
     output: T,
 ) -> GenResult<T> {
@@ -55,12 +59,12 @@ fn write_first_packet<T: Write>(
         route_code: None,
     };
     let result = event_start.write(output)?;
-    return Result::Ok(result);
+    Result::Ok(result)
 }
 
 fn write_second_packet<T: Write>(
-    status: &String,
-    test_id: &String,
+    status: &str,
+    test_id: &str,
     timestamp: DateTime<Utc>,
     file_content: Option<Vec<u8>>,
     file_name: Option<String>,
@@ -72,17 +76,17 @@ fn write_second_packet<T: Write>(
         test_id: Some(test_id.to_string()),
         timestamp: Some(timestamp),
         tags: None,
-        file_content: file_content,
-        file_name: file_name,
-        mime_type: mime_type,
+        file_content,
+        file_name,
+        mime_type,
         route_code: None,
     };
     let result = event_stop.write(output)?;
-    return Result::Ok(result);
+    Result::Ok(result)
 }
 
 fn _process_skip<T: Write>(
-    test_id: &String,
+    test_id: &str,
     timestamp: DateTime<Utc>,
     file_content: Option<Vec<u8>>,
     output: T,
@@ -100,16 +104,17 @@ fn _process_skip<T: Write>(
             Some(fname),
             Some(mime),
             output,
-        ).unwrap();
+        )
+        .unwrap();
     } else {
         result =
             write_second_packet(&status, &test_id, timestamp, None, None, None, output).unwrap();
     }
-    return Result::Ok(result);
+    Result::Ok(result)
 }
 
 fn _process_failure<T: Write>(
-    test_id: &String,
+    test_id: &str,
     timestamp: DateTime<Utc>,
     file_content: Option<Vec<u8>>,
     output: T,
@@ -127,12 +132,13 @@ fn _process_failure<T: Write>(
             Some(fname),
             Some(mime),
             output,
-        ).unwrap();
+        )
+        .unwrap();
     } else {
         result =
             write_second_packet(&status, &test_id, timestamp, None, None, None, output).unwrap();
     }
-    return Result::Ok(result);
+    Result::Ok(result)
 }
 fn main() {
     let matches = App::new("junitxml2subunit")
@@ -167,8 +173,7 @@ fn main() {
         }
     };
     reader.trim_text(true);
-    let mut stdout: Box<Write>;
-    if matches.is_present("output") {
+    let mut stdout: Box<Write> = if matches.is_present("output") {
         let out_path = matches.value_of("output").unwrap();
         let out_file = match File::create(out_path) {
             Ok(out_file) => out_file,
@@ -177,10 +182,10 @@ fn main() {
                 process::exit(4);
             }
         };
-        stdout = Box::new(out_file);
+        Box::new(out_file)
     } else {
-        stdout = Box::new(io::stdout());
-    }
+        Box::new(io::stdout())
+    };
     let mut start_time: DateTime<Utc> = Utc::now();
     let mut buf = Vec::new();
     let mut test_id = "".to_string();
@@ -190,23 +195,25 @@ fn main() {
     loop {
         match reader.read_event(&mut buf) {
             Ok(XMLEvent::Start(ref e)) => {
-                if e.name() == "testcase".as_bytes() {
-                    if test_id != "".to_string() {
+                if e.name() == b"testcase" {
+                    if test_id != "" {
                         if attachment.is_some() {
-                            if status == "fail".to_string() {
+                            if status == "fail" {
                                 stdout = _process_failure(
                                     &test_id,
                                     stop_time,
                                     Some(attachment.unwrap().into_bytes()),
                                     stdout,
-                                ).unwrap();
-                            } else if status == "skip".to_string() {
+                                )
+                                .unwrap();
+                            } else if status == "skip" {
                                 stdout = _process_skip(
                                     &test_id,
                                     stop_time,
                                     Some(attachment.unwrap().into_bytes()),
                                     stdout,
-                                ).unwrap();
+                                )
+                                .unwrap();
                             } else {
                                 let fname = "stdout".to_string();
                                 let mime = "text/plain".to_string();
@@ -219,15 +226,17 @@ fn main() {
                                     Some(fname),
                                     Some(mime),
                                     stdout,
-                                ).unwrap();
+                                )
+                                .unwrap();
                             }
                         } else {
-                            if status == "".to_string() {
+                            if status == "" {
                                 status = "success".to_string();
                             }
                             stdout = write_second_packet(
                                 &status, &test_id, stop_time, None, None, None, stdout,
-                            ).unwrap();
+                            )
+                            .unwrap();
                         }
                         attachment = None;
                         status = "".to_string();
@@ -238,17 +247,17 @@ fn main() {
                     let mut id = None;
                     for attribute in e.attributes() {
                         let attr = attribute.unwrap();
-                        if attr.key == "name".as_bytes() {
+                        if attr.key == b"name" {
                             test_name = Some(attr.value);
-                        } else if attr.key == "id".as_bytes() {
+                        } else if attr.key == b"id" {
                             id = Some(attr.value);
-                        } else if attr.key == "classname".as_bytes() {
+                        } else if attr.key == b"classname" {
                             class_name = Some(attr.value);
-                        } else if attr.key == "time".as_bytes() {
+                        } else if attr.key == b"time" {
                             time = Some(attr.value);
                         }
                     }
-                    if !time.is_some() {
+                    if time.is_none() {
                         eprintln!("Invalid XML: There is no time attribute on a testcase");
                         process::exit(2);
                     } else {
@@ -259,7 +268,7 @@ fn main() {
                         let dur = Duration::nanoseconds(time_nano as i64);
                         stop_time = start_time + dur;
                     }
-                    if !test_name.is_some() && !class_name.is_some() {
+                    if test_name.is_none() && class_name.is_none() {
                         eprintln!("Invalid XML: There is no testname or classname attribute on a testcase");
                         process::exit(3);
                     }
@@ -267,12 +276,14 @@ fn main() {
                         if test_name.is_some() {
                             test_id = str::from_utf8(class_name.unwrap().to_mut())
                                 .unwrap()
-                                .to_owned() + "."
+                                .to_owned()
+                                + "."
                                 + str::from_utf8(test_name.unwrap().to_mut()).unwrap();
                         } else if id.is_some() {
                             test_id = str::from_utf8(class_name.unwrap().to_mut())
                                 .unwrap()
-                                .to_owned() + "."
+                                .to_owned()
+                                + "."
                                 + str::from_utf8(id.unwrap().to_mut()).unwrap();
                         } else {
                             test_id = str::from_utf8(class_name.unwrap().to_mut())
@@ -288,35 +299,37 @@ fn main() {
                     }
                     stdout = write_first_packet(&test_id, start_time, stdout).unwrap();
                     start_time = stop_time;
-                } else if e.name() == "skipped".as_bytes() {
+                } else if e.name() == b"skipped" {
                     status = "skip".to_string();
                     for attribute in e.attributes() {
                         let attr = attribute.unwrap();
-                        if attr.key == "message".as_bytes() {
+                        if attr.key == b"message" {
                             let file_content = attr.value;
                             stdout = _process_skip(
                                 &test_id,
                                 stop_time,
                                 Some(file_content.to_vec()),
                                 stdout,
-                            ).unwrap();
+                            )
+                            .unwrap();
                             status = "".to_string();
                             test_id = "".to_string();
                             break;
                         }
                     }
-                } else if e.name() == "failure".as_bytes() || e.name() == "error".as_bytes() {
+                } else if e.name() == b"failure" || e.name() == b"error" {
                     status = "fail".to_string();
                     for attribute in e.attributes() {
                         let attr = attribute.unwrap();
-                        if attr.key == "message".as_bytes() {
+                        if attr.key == b"message" {
                             let file_content = attr.value;
                             stdout = _process_failure(
                                 &test_id,
                                 stop_time,
                                 Some(file_content.to_vec()),
                                 stdout,
-                            ).unwrap();
+                            )
+                            .unwrap();
                             status = "".to_string();
                             test_id = "".to_string();
                             break;
@@ -325,7 +338,7 @@ fn main() {
                 }
             }
             Ok(XMLEvent::Eof) => {
-                if test_id != "".to_string() {
+                if test_id != "" {
                     let status = "success".to_string();
                     write_second_packet(&status, &test_id, stop_time, None, None, None, stdout)
                         .unwrap();
