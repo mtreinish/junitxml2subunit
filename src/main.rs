@@ -15,7 +15,6 @@
 // You should have received a copy of the GNU General Public License
 // along with junitxml2subunit.  If not, see <http://www.gnu.org/licenses/>.
 
-#![deny(warnings)]
 #![allow(clippy::cargo)]
 #![allow(clippy::cyclomatic_complexity)]
 
@@ -40,7 +39,7 @@ use quick_xml::events::Event as XMLEvent;
 use quick_xml::Reader;
 use subunit_rust::Event;
 
-type GenError = Box<Error>;
+type GenError = Box<dyn Error>;
 type GenResult<T> = Result<T, GenError>;
 
 fn write_first_packet<T: Write>(
@@ -173,7 +172,7 @@ fn main() {
         }
     };
     reader.trim_text(true);
-    let mut stdout: Box<Write> = if matches.is_present("output") {
+    let mut stdout: Box<dyn Write> = if matches.is_present("output") {
         let out_path = matches.value_of("output").unwrap();
         let out_file = match File::create(out_path) {
             Ok(out_file) => out_file,
