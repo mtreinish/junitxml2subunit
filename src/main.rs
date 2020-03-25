@@ -141,7 +141,7 @@ fn _process_failure<T: Write>(
 }
 fn main() {
     let matches = App::new("junitxml2subunit")
-        .version("1.0.0")
+        .version("1.0.1")
         .about("Convert JUnit XML to Subunit v2")
         .arg(
             Arg::with_name("PATH")
