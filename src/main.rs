@@ -16,7 +16,7 @@
 // along with junitxml2subunit.  If not, see <http://www.gnu.org/licenses/>.
 
 #![allow(clippy::cargo)]
-#![allow(clippy::cyclomatic_complexity)]
+#![allow(clippy::cognitive_complexity)]
 
 extern crate chrono;
 extern crate clap;
@@ -196,12 +196,12 @@ fn main() {
             Ok(XMLEvent::Start(ref e)) => {
                 if e.name() == b"testcase" {
                     if test_id != "" {
-                        if attachment.is_some() {
+                        if let Some(attachment) = attachment {
                             if status == "fail" {
                                 stdout = _process_failure(
                                     &test_id,
                                     stop_time,
-                                    Some(attachment.unwrap().into_bytes()),
+                                    Some(attachment.into_bytes()),
                                     stdout,
                                 )
                                 .unwrap();
@@ -209,7 +209,7 @@ fn main() {
                                 stdout = _process_skip(
                                     &test_id,
                                     stop_time,
-                                    Some(attachment.unwrap().into_bytes()),
+                                    Some(attachment.into_bytes()),
                                     stdout,
                                 )
                                 .unwrap();
@@ -221,7 +221,7 @@ fn main() {
                                     &status,
                                     &test_id,
                                     stop_time,
-                                    Some(attachment.unwrap().into_bytes()),
+                                    Some(attachment.into_bytes()),
                                     Some(fname),
                                     Some(mime),
                                     stdout,
@@ -256,45 +256,37 @@ fn main() {
                             time = Some(attr.value);
                         }
                     }
-                    if time.is_none() {
-                        eprintln!("Invalid XML: There is no time attribute on a testcase");
-                        process::exit(2);
-                    } else {
-                        let mut time_cow = time.unwrap();
+                    if let Some(time) = time {
+                        let mut time_cow = time;
                         let time_str = str::from_utf8(time_cow.to_mut()).unwrap();
                         let time_64 = time_str.parse::<f64>().unwrap();
                         let time_nano = time_64 * pow(10f64, 9);
                         let dur = Duration::nanoseconds(time_nano as i64);
                         stop_time = start_time + dur;
+                    } else {
+                        eprintln!("Invalid XML: There is no time attribute on a testcase");
+                        process::exit(2);
                     }
                     if test_name.is_none() && class_name.is_none() {
                         eprintln!("Invalid XML: There is no testname or classname attribute on a testcase");
                         process::exit(3);
                     }
-                    if class_name.is_some() {
-                        if test_name.is_some() {
-                            test_id = str::from_utf8(class_name.unwrap().to_mut())
-                                .unwrap()
-                                .to_owned()
+                    if let Some(mut class_name) = class_name {
+                        if let Some(mut test_name) = test_name {
+                            test_id = str::from_utf8(class_name.to_mut()).unwrap().to_owned()
                                 + "."
-                                + str::from_utf8(test_name.unwrap().to_mut()).unwrap();
-                        } else if id.is_some() {
-                            test_id = str::from_utf8(class_name.unwrap().to_mut())
-                                .unwrap()
-                                .to_owned()
+                                + str::from_utf8(test_name.to_mut()).unwrap();
+                        } else if let Some(mut id) = id {
+                            test_id = str::from_utf8(class_name.to_mut()).unwrap().to_owned()
                                 + "."
-                                + str::from_utf8(id.unwrap().to_mut()).unwrap();
+                                + str::from_utf8(id.to_mut()).unwrap();
                         } else {
-                            test_id = str::from_utf8(class_name.unwrap().to_mut())
-                                .unwrap()
-                                .to_string();
+                            test_id = str::from_utf8(class_name.to_mut()).unwrap().to_string();
                         }
-                    } else if id.is_some() {
-                        test_id = str::from_utf8(id.unwrap().to_mut()).unwrap().to_string();
-                    } else if test_name.is_some() {
-                        test_id = str::from_utf8(test_name.unwrap().to_mut())
-                            .unwrap()
-                            .to_string();
+                    } else if let Some(mut id) = id {
+                        test_id = str::from_utf8(id.to_mut()).unwrap().to_string();
+                    } else if let Some(mut test_name) = test_name {
+                        test_id = str::from_utf8(test_name.to_mut()).unwrap().to_string();
                     }
                     stdout = write_first_packet(&test_id, start_time, stdout).unwrap();
                     start_time = stop_time;
