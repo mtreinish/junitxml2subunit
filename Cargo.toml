@@ -1,6 +1,6 @@
 [package]
 name = "junitxml2subunit"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["Matthew Treinish <mtreinish@kortar.org>"]
 description = "A tool to convert junitxml files to subunit v2"
 license = "GPL-3.0"
@@ -10,7 +10,7 @@ keywords = ["subunit", "junitxml"]
 categories = ["development-tools::testing"]
 
 [dependencies]
-subunit-rust = "0.1"
+subunit-rust = "0.1.3"
 quick-xml = "0.17.2"
 chrono = "0.4"
 num-traits = "0.2"

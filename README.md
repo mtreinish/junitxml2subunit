@@ -3,7 +3,7 @@ junitxml2subunit
 [![junitxml2subunit on Travis CI][travis-image]][travis]
 [![junitxml2subunit on crates.io][cratesio-image]][cratesio]
 
-[travis-image]: https://travis-ci.org/mtreinish/junitxml2subunit.svg?branch=master
+[travis-image]: https://travis-ci.com/mtreinish/junitxml2subunit.svg?branch=master
 [travis]: https://travis-ci.org/mtreinish/junitxml2subunit
 [cratesio-image]: https://img.shields.io/crates/v/junitxml2subunit.svg
 [cratesio]: https://crates.io/crates/junitxml2subunit
@@ -32,3 +32,6 @@ print the subunit v2 stream for that file to STDOUT. For example:
 ```
 $ junitxml2subunit results.xml
 ```
+
+Optionally there is a `-o`/`--output` flag which can be used to write the
+subunit v2 stream to a file.
