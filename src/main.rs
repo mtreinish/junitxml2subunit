@@ -195,7 +195,7 @@ fn main() {
         match reader.read_event(&mut buf) {
             Ok(XMLEvent::Start(ref e)) => {
                 if e.name() == b"testcase" {
-                    if test_id != "" {
+                    if !test_id.is_empty() {
                         if let Some(attachment) = attachment {
                             if status == "fail" {
                                 stdout = _process_failure(
@@ -229,7 +229,7 @@ fn main() {
                                 .unwrap();
                             }
                         } else {
-                            if status == "" {
+                            if status.is_empty() {
                                 status = "success".to_string();
                             }
                             stdout = write_second_packet(
@@ -329,7 +329,7 @@ fn main() {
                 }
             }
             Ok(XMLEvent::Eof) => {
-                if test_id != "" {
+                if !test_id.is_empty() {
                     let status = "success".to_string();
                     write_second_packet(&status, &test_id, stop_time, None, None, None, stdout)
                         .unwrap();

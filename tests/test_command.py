@@ -177,7 +177,8 @@ class TestJunitXML2Subunit(testtools.TestCase):
         junitxml_proc = subprocess.Popen([self.command, no_time_xml_path],
                                          cwd=self.repo_root,
                                          stdout=subprocess.PIPE,
-                                         stderr=subprocess.PIPE)
+                                         stderr=subprocess.PIPE,
+                                         encoding='utf8')
         _, stderr = junitxml_proc.communicate()
         self.assertEqual(2, junitxml_proc.returncode)
         self.assertEqual(
@@ -193,7 +194,8 @@ class TestJunitXML2Subunit(testtools.TestCase):
                                           no_time_xml_path],
                                          cwd=self.repo_root,
                                          stdout=subprocess.PIPE,
-                                         stderr=subprocess.PIPE)
+                                         stderr=subprocess.PIPE,
+                                         encoding='utf8')
         _, stderr = junitxml_proc.communicate()
         self.assertEqual(2, junitxml_proc.returncode)
         self.assertEqual(
@@ -205,7 +207,8 @@ class TestJunitXML2Subunit(testtools.TestCase):
         junitxml_proc = subprocess.Popen([self.command, no_id_xml_path],
                                          cwd=self.repo_root,
                                          stdout=subprocess.PIPE,
-                                         stderr=subprocess.PIPE)
+                                         stderr=subprocess.PIPE,
+                                         encoding='utf8')
         _, stderr = junitxml_proc.communicate()
         self.assertEqual(3, junitxml_proc.returncode)
         self.assertEqual(
@@ -222,7 +225,8 @@ class TestJunitXML2Subunit(testtools.TestCase):
                                           no_id_xml_path],
                                          cwd=self.repo_root,
                                          stdout=subprocess.PIPE,
-                                         stderr=subprocess.PIPE)
+                                         stderr=subprocess.PIPE,
+                                         encoding='utf8')
         _, stderr = junitxml_proc.communicate()
         self.assertEqual(3, junitxml_proc.returncode)
         self.assertEqual(
@@ -237,7 +241,8 @@ class TestJunitXML2Subunit(testtools.TestCase):
         junitxml_proc = subprocess.Popen([self.command, out_path],
                                          cwd=self.repo_root,
                                          stdout=subprocess.PIPE,
-                                         stderr=subprocess.PIPE)
+                                         stderr=subprocess.PIPE,
+                                         encoding='utf8')
         _, stderr = junitxml_proc.communicate()
         self.assertEqual(1, junitxml_proc.returncode)
         self.assertEqual(
