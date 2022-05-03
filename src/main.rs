@@ -58,7 +58,7 @@ fn write_first_packet<T: Write>(
         route_code: None,
     };
     let result = event_start.write(output)?;
-    Result::Ok(result)
+    Ok(result)
 }
 
 fn write_second_packet<T: Write>(
@@ -81,7 +81,7 @@ fn write_second_packet<T: Write>(
         route_code: None,
     };
     let result = event_stop.write(output)?;
-    Result::Ok(result)
+    Ok(result)
 }
 
 fn _process_skip<T: Write>(
@@ -90,26 +90,22 @@ fn _process_skip<T: Write>(
     file_content: Option<Vec<u8>>,
     output: T,
 ) -> GenResult<T> {
-    let result;
     let status = "skip".to_string();
     if file_content.is_some() {
         let fname = "reason".to_string();
         let mime = "text/plain".to_string();
-        result = write_second_packet(
+        write_second_packet(
             &status,
-            &test_id,
+            test_id,
             timestamp,
             file_content,
             Some(fname),
             Some(mime),
             output,
         )
-        .unwrap();
     } else {
-        result =
-            write_second_packet(&status, &test_id, timestamp, None, None, None, output).unwrap();
+        write_second_packet(&status, test_id, timestamp, None, None, None, output)
     }
-    Result::Ok(result)
 }
 
 fn _process_failure<T: Write>(
@@ -118,26 +114,22 @@ fn _process_failure<T: Write>(
     file_content: Option<Vec<u8>>,
     output: T,
 ) -> GenResult<T> {
-    let result;
     let status = "fail".to_string();
     if file_content.is_some() {
         let fname = "traceback".to_string();
         let mime = "text/plain".to_string();
-        result = write_second_packet(
+        write_second_packet(
             &status,
-            &test_id,
+            test_id,
             timestamp,
             file_content,
             Some(fname),
             Some(mime),
             output,
         )
-        .unwrap();
     } else {
-        result =
-            write_second_packet(&status, &test_id, timestamp, None, None, None, output).unwrap();
+        write_second_packet(&status, test_id, timestamp, None, None, None, output)
     }
-    Result::Ok(result)
 }
 fn main() {
     let matches = App::new("junitxml2subunit")
