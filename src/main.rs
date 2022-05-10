@@ -33,7 +33,7 @@ use std::str;
 
 use chrono::prelude::*;
 use chrono::Duration;
-use clap::{Command, Arg};
+use clap::{Arg, Command};
 use num_traits::pow;
 use quick_xml::events::Event as XMLEvent;
 use quick_xml::Reader;
