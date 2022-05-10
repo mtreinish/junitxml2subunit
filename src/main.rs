@@ -33,7 +33,7 @@ use std::str;
 
 use chrono::prelude::*;
 use chrono::Duration;
-use clap::{App, Arg};
+use clap::{Command, Arg};
 use num_traits::pow;
 use quick_xml::events::Event as XMLEvent;
 use quick_xml::Reader;
@@ -132,17 +132,17 @@ fn _process_failure<T: Write>(
     }
 }
 fn main() {
-    let matches = App::new("junitxml2subunit")
+    let matches = Command::new("junitxml2subunit")
         .version("1.0.1")
         .about("Convert JUnit XML to Subunit v2")
         .arg(
-            Arg::with_name("PATH")
+            Arg::new("PATH")
                 .help("The path to the XML input file")
                 .required(true)
                 .index(1),
         )
         .arg(
-            Arg::with_name("output")
+            Arg::new("output")
                 .long("output")
                 .short('o')
                 .help("Optional output path to write subunit to. If not specified it will be written to STDOUT")
