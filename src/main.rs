@@ -144,7 +144,7 @@ fn main() {
         .arg(
             Arg::with_name("output")
                 .long("output")
-                .short("o")
+                .short('o')
                 .help("Optional output path to write subunit to. If not specified it will be written to STDOUT")
                 .value_name("FILE")
                 .takes_value(true))
