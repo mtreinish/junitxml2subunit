@@ -36,6 +36,7 @@ use chrono::Duration;
 use clap::{Arg, Command};
 use num_traits::pow;
 use quick_xml::events::Event as XMLEvent;
+use quick_xml::name::QName;
 use quick_xml::Reader;
 use subunit_rust::Event;
 
@@ -184,9 +185,9 @@ fn main() {
     let mut attachment: Option<String> = None;
     let mut stop_time: DateTime<Utc> = Utc::now();
     loop {
-        match reader.read_event(&mut buf) {
+        match reader.read_event_into(&mut buf) {
             Ok(XMLEvent::Start(ref e)) => {
-                if e.name() == b"testcase" {
+                if e.name() == QName(b"testcase") {
                     if !test_id.is_empty() {
                         if let Some(attachment) = attachment {
                             if status == "fail" {
@@ -238,13 +239,13 @@ fn main() {
                     let mut id = None;
                     for attribute in e.attributes() {
                         let attr = attribute.unwrap();
-                        if attr.key == b"name" {
+                        if attr.key == QName(b"name") {
                             test_name = Some(attr.value);
-                        } else if attr.key == b"id" {
+                        } else if attr.key == QName(b"id") {
                             id = Some(attr.value);
-                        } else if attr.key == b"classname" {
+                        } else if attr.key == QName(b"classname") {
                             class_name = Some(attr.value);
-                        } else if attr.key == b"time" {
+                        } else if attr.key == QName(b"time") {
                             time = Some(attr.value);
                         }
                     }
@@ -282,11 +283,11 @@ fn main() {
                     }
                     stdout = write_first_packet(&test_id, start_time, stdout).unwrap();
                     start_time = stop_time;
-                } else if e.name() == b"skipped" {
+                } else if e.name() == QName(b"skipped") {
                     status = "skip".to_string();
                     for attribute in e.attributes() {
                         let attr = attribute.unwrap();
-                        if attr.key == b"message" {
+                        if attr.key == QName(b"message") {
                             let file_content = attr.value;
                             stdout = _process_skip(
                                 &test_id,
@@ -300,11 +301,11 @@ fn main() {
                             break;
                         }
                     }
-                } else if e.name() == b"failure" || e.name() == b"error" {
+                } else if e.name() == QName(b"failure") || e.name() == QName(b"error") {
                     status = "fail".to_string();
                     for attribute in e.attributes() {
                         let attr = attribute.unwrap();
-                        if attr.key == b"message" {
+                        if attr.key == QName(b"message") {
                             let file_content = attr.value;
                             stdout = _process_failure(
                                 &test_id,
@@ -330,7 +331,7 @@ fn main() {
             }
             Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
             Ok(XMLEvent::Text(e)) => {
-                let attach = e.unescape_and_decode(&reader).unwrap();
+                let attach = e.unescape().unwrap().into_owned();
                 if !attach.is_empty() {
                     attachment = Some(attach);
                 }
