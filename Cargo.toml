@@ -11,7 +11,7 @@ categories = ["development-tools::testing"]
 
 [dependencies]
 subunit-rust = "0.2.0"
-quick-xml = "0.28.1"
+quick-xml = "0.28.2"
 chrono = "0.4"
 num-traits = "0.2"
 clap = "3"
